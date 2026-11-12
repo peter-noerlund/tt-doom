@@ -4,6 +4,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 project(tt-doom LANGUAGES C)
 
+find_package(doom1wad CONFIG REQUIRED)
 find_package(X11)
 find_package(SDL2)
 find_package(SDL2_mixer)
