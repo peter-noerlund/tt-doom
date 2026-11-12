@@ -5,94 +5,98 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 project(tt-doom LANGUAGES C)
 
 find_package(doom1wad CONFIG REQUIRED)
-find_package(X11)
+find_package(riscv-compiler CONFIG)
+find_package(riscv-picolibc CONFIG)
 find_package(SDL2)
 find_package(SDL2_mixer)
+find_package(X11)
 
-add_library(doom-base INTERFACE)
-target_sources(doom-base INTERFACE
-    src/dummy.c
-    src/am_map.c
-    src/doomdef.c
-    src/doomstat.c
-    src/dstrings.c
-    src/d_event.c
-    src/d_items.c
-    src/d_iwad.c
-    src/d_loop.c
-    src/d_main.c
-    src/d_mode.c
-    src/d_net.c
-    src/f_finale.c
-    src/f_wipe.c
-    src/g_game.c
-    src/hu_lib.c
-    src/hu_stuff.c
-    src/info.c
-    src/i_cdmus.c
-    src/i_endoom.c
-    src/i_joystick.c
-    src/i_scale.c
-    src/i_sound.c
-    src/i_system.c
-    src/i_timer.c
-    src/memio.c
-    src/m_argv.c
-    src/m_bbox.c
-    src/m_cheat.c
-    src/m_config.c
-    src/m_controls.c
-    src/m_fixed.c
-    src/m_menu.c
-    src/m_misc.c
-    src/m_random.c
-    src/p_ceilng.c
-    src/p_doors.c
-    src/p_enemy.c
-    src/p_floor.c
-    src/p_inter.c
-    src/p_lights.c
-    src/p_map.c
-    src/p_maputl.c
-    src/p_mobj.c
-    src/p_plats.c
-    src/p_pspr.c
-    src/p_saveg.c
-    src/p_setup.c
-    src/p_sight.c
-    src/p_spec.c
-    src/p_switch.c
-    src/p_telept.c
-    src/p_tick.c
-    src/p_user.c
-    src/r_bsp.c
-    src/r_data.c
-    src/r_draw.c
-    src/r_main.c
-    src/r_plane.c
-    src/r_segs.c
-    src/r_sky.c
-    src/r_things.c
-    src/sha1.c
-    src/sounds.c
-    src/statdump.c
-    src/st_lib.c
-    src/st_stuff.c
-    src/s_sound.c
-    src/tables.c
-    src/v_video.c
-    src/wi_stuff.c
-    src/w_checksum.c
-    src/w_file.c
-    src/w_main.c
-    src/w_wad.c
-    src/z_zone.c
-    src/w_file_stdc.c
-    src/i_input.c
-    src/i_video.c
-    src/doomgeneric.c
+set(DOOM_SOURCES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dummy.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/am_map.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/doomdef.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/doomstat.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dstrings.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_event.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_items.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_iwad.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_loop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_mode.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/d_net.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/f_finale.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/f_wipe.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/g_game.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hu_lib.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hu_stuff.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/info.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_cdmus.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_endoom.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_joystick.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_scale.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_sound.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_system.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_timer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/memio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_argv.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_bbox.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_cheat.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_config.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_controls.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_fixed.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_menu.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_misc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/m_random.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_ceilng.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_doors.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_enemy.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_floor.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_inter.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_lights.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_map.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_maputl.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_mobj.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_plats.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_pspr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_saveg.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_setup.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_sight.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_spec.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_switch.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_telept.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_tick.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/p_user.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_bsp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_draw.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_plane.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_segs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_sky.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/r_things.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sha1.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sounds.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/statdump.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/st_lib.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/st_stuff.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/s_sound.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tables.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/v_video.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/wi_stuff.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/w_checksum.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/w_file.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/w_main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/w_wad.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/z_zone.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/w_file_stdc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_input.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_video.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric.c
     ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c
 )
+
+add_library(doom-base INTERFACE)
+target_sources(doom-base INTERFACE ${DOOM_SOURCES})
 target_include_directories(doom-base INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(file-to-c tools/file_to_c.c)
@@ -105,6 +109,13 @@ add_custom_command(
     COMMAND $<TARGET_FILE:file-to-c> ${DOOM1_WAD} ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.h doom1_wad
     DEPENDS ${DOOM1WAD} $<TARGET_FILE:file-to-c>
 )
+
+add_executable(doomgeneric-linuxvt
+    src/doomgeneric_linuxvt.c
+    src/mus2mid.c
+)
+target_compile_definitions(doomgeneric-linuxvt PRIVATE NORMALUNIX LINUX SNDSERV _DEFAULT_SOURCE)
+target_link_libraries(doomgeneric-linuxvt PRIVATE doom-base)
 
 if(X11_FOUND)
     add_executable(doomgeneric-xlib
@@ -125,17 +136,58 @@ if(SDL2_FOUND AND SDL2_mixer_FOUND)
     target_link_libraries(doomgeneric-sdl PRIVATE doom-base SDL2::SDL2 SDL2_mixer::SDL2_mixer)
 endif()
 
-add_executable(doomgeneric-linuxvt
-    src/doomgeneric_linuxvt.c
-    src/mus2mid.c
-)
-target_compile_definitions(doomgeneric-linuxvt PRIVATE NORMALUNIX LINUX SNDSERV _DEFAULT_SOURCE)
-target_link_libraries(doomgeneric-linuxvt PRIVATE doom-base)
-
 if(WIN32)
     add_executable(doomgeneric-win
         src/doomgeneric_win.c
     )
     target_compile_definitions(doomgeneric-win PRIVATE SNDSERV _DEFAULT_SOURCE)
     target_link_libraries(doomgeneric-win PRIVATE gdi32)
+endif()
+
+if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
+    set(DOOM_SOURCES_IMP ${DOOM_SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/init_imp.S
+    )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.elf
+        COMMAND
+            ${RISCV_GCC}
+            -march=rv32ezicsr
+            -mabi=ilp32e
+            -mstrict-align
+            -mcmodel=medany
+            -mtune=size
+            -mno-relax
+            -Wl,--no-relax
+            -fno-builtin
+            -O3
+            -Wall
+            -Wno-format
+            -Wno-unused-but-set-variable
+            -Wno-unused-const-variable
+            -o ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.elf
+            --specs=${RISCV_PICOLIBC}
+            -T${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.ld
+            -DNDEBUG
+            -D_DEFAULT_SOURCE
+            -DDOOMGENERIC_RESX=320
+            -DOOOMGENERIC_RESY=200
+            -DTT_IMP
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/src
+            -I ${CMAKE_CURRENT_BINARY_DIR}
+            ${DOOM_SOURCES_IMP}
+        DEPENDS ${DOOM_SOURCES_IMP} ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.ld
+    )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.bin
+        COMMAND ${RISCV_OBJCOPY} -O binary ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.elf ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.bin
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.elf
+    )
+
+    add_custom_target(doomgeneric-imp ALL
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.bin
+    )
 endif()

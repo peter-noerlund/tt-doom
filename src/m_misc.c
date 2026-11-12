@@ -56,7 +56,7 @@ void M_MakeDirectory(char *path)
 {
 #ifdef _WIN32
     mkdir(path);
-#else
+#elif !defined(TT_IMP)
     mkdir(path, 0755);
 #endif
 }
