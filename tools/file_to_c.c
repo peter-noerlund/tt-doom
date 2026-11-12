@@ -67,6 +67,7 @@ int main(int argc, char** argv)
         if (fread(buffer, chunk_size, 1, input_file) != 1)
         {
             fprintf(stderr, "Error reading from file: %s\n", strerror(errno));
+            free(buffer);
             fclose(input_file);
             fclose(output_file);
             return EXIT_FAILURE;
@@ -91,6 +92,7 @@ int main(int argc, char** argv)
     }
     fputs("};\n", output_file);
 
+    free(buffer);
     fclose(input_file);
     fclose(output_file);
 
