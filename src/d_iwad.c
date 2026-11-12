@@ -34,21 +34,7 @@
 
 static const iwad_t iwads[] =
 {
-    { "doom2.wad",    doom2,     commercial, "Doom II" },
-    { "plutonia.wad", pack_plut, commercial, "Final Doom: Plutonia Experiment" },
-    { "tnt.wad",      pack_tnt,  commercial, "Final Doom: TNT: Evilution" },
-    { "doom.wad",     doom,      retail,     "Doom" },
-    { "doom1.wad",    doom,      shareware,  "Doom Shareware" },
-    { "chex.wad",     pack_chex, shareware,  "Chex Quest" },
-    { "hacx.wad",     pack_hacx, commercial, "Hacx" },
-    { "freedm.wad",   doom2,     commercial, "FreeDM" },
-    { "freedoom2.wad", doom2,    commercial, "Freedoom: Phase 2" },
-    { "freedoom1.wad", doom,     retail,     "Freedoom: Phase 1" },
-    { "heretic.wad",  heretic,   retail,     "Heretic" },
-    { "heretic1.wad", heretic,   shareware,  "Heretic Shareware" },
-    { "hexen.wad",    hexen,     commercial, "Hexen" },
-    //{ "strife0.wad",  strife,    commercial, "Strife" }, // haleyjd: STRIFE-FIXME
-    { "strife1.wad",  strife,    commercial, "Strife" },
+    { "doom1.wad",    doom,      shareware,  "Doom Shareware" }
 };
 
 // Array of locations to search for IWAD files
@@ -401,112 +387,6 @@ static boolean DirIsFile(char *path, char *filename)
         && !strcasecmp(&path[path_len - filename_len], filename);
 }
 
-// Check if the specified directory contains the specified IWAD
-// file, returning the full path to the IWAD if found, or NULL
-// if not found.
-
-static char *CheckDirectoryHasIWAD(char *dir, char *iwadname)
-{
-    char *filename; 
-
-    // As a special case, the "directory" may refer directly to an
-    // IWAD file if the path comes from DOOMWADDIR or DOOMWADPATH.
-
-    if (DirIsFile(dir, iwadname) && M_FileExists(dir))
-    {
-        return strdup(dir);
-    }
-
-    // Construct the full path to the IWAD if it is located in
-    // this directory, and check if it exists.
-
-    if (!strcmp(dir, "."))
-    {
-        filename = strdup(iwadname);
-    }
-    else
-    {
-        filename = M_StringJoin(dir, DIR_SEPARATOR_S, iwadname, NULL);
-    }
-
-    printf("Trying IWAD file:%s\n", filename);
-
-    if (M_FileExists(filename))
-    {
-        return filename;
-    }
-
-    free(filename);
-
-    return NULL;
-}
-
-// Search a directory to try to find an IWAD
-// Returns the location of the IWAD if found, otherwise NULL.
-
-static char *SearchDirectoryForIWAD(char *dir, int mask, GameMission_t *mission)
-{
-    char *filename;
-    size_t i;
-
-    for (i=0; i<arrlen(iwads); ++i) 
-    {
-        if (((1 << iwads[i].mission) & mask) == 0)
-        {
-            continue;
-        }
-
-        filename = CheckDirectoryHasIWAD(dir, DEH_String(iwads[i].name));
-
-        if (filename != NULL)
-        {
-            *mission = iwads[i].mission;
-
-            return filename;
-        }
-    }
-
-    return NULL;
-}
-
-// When given an IWAD with the '-iwad' parameter,
-// attempt to identify it by its name.
-
-static GameMission_t IdentifyIWADByName(char *name, int mask)
-{
-    size_t i;
-    GameMission_t mission;
-    char *p;
-
-    p = strrchr(name, DIR_SEPARATOR);
-
-    if (p != NULL)
-    {
-        name = p + 1;
-    }
-
-    mission = none;
-
-    for (i=0; i<arrlen(iwads); ++i)
-    {
-        // Check if the filename is this IWAD name.
-
-        // Only use supported missions:
-
-        if (((1 << iwads[i].mission) & mask) == 0)
-            continue;
-
-        // Check if it ends in this IWAD name.
-
-        if (!strcasecmp(name, iwads[i].name))
-        {
-            mission = iwads[i].mission;
-            break;
-        }
-    }
-
-    return mission;
-}
 
 #if ORIGCODE
 //
