@@ -104,6 +104,12 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     target_compile_options(file-to-c PRIVATE -Wall -W -Wextra -Wpedantic)
 endif()
 
+add_executable(encode-font tools/encode_font.c)
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+    target_compile_options(encode-font PRIVATE -Wall -W -Wextra -Wpedantic)
+endif()
+target_include_directories(encode-font PRIVATE tools)
+
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c
     COMMAND $<TARGET_FILE:file-to-c> ${DOOM1_WAD} ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.h doom1_wad
@@ -148,6 +154,13 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
     set(DOOM_SOURCES_IMP ${DOOM_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/init_imp.S
+        ${CMAKE_CURRENT_BINARY_DIR}/font_imp.c
+    )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/font_imp.c
+        COMMAND $<TARGET_FILE:encode-font> ${CMAKE_CURRENT_BINARY_DIR}/font_imp.c ${CMAKE_CURRENT_BINARY_DIR}/font_imp.h font_imp
+        DEPENDS $<TARGET_FILE:encode-font>
     )
 
     add_custom_command(
@@ -178,7 +191,7 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
             -I ${CMAKE_CURRENT_SOURCE_DIR}/src
             -I ${CMAKE_CURRENT_BINARY_DIR}
             ${DOOM_SOURCES_IMP}
-        DEPENDS ${DOOM_SOURCES_IMP} ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.ld
+        DEPENDS ${DOOM_SOURCES_IMP} ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.ld ${CMAKE_CURRENT_BINARY_DIR}/font_imp.c
     )
 
     add_custom_command(
