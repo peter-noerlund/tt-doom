@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
 project(tt-doom LANGUAGES C)
 
 find_package(X11)
@@ -88,6 +90,19 @@ target_sources(doom-base INTERFACE
     src/i_input.c
     src/i_video.c
     src/doomgeneric.c
+    ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c
+)
+target_include_directories(doom-base INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_executable(file-to-c tools/file_to_c.c)
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+    target_compile_options(file-to-c PRIVATE -Wall -W -Wextra -Wpedantic)
+endif()
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c
+    COMMAND $<TARGET_FILE:file-to-c> ${DOOM1_WAD} ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.h doom1_wad
+    DEPENDS ${DOOM1WAD} $<TARGET_FILE:file-to-c>
 )
 
 if(X11_FOUND)

@@ -20,76 +20,48 @@
 
 #include "config.h"
 
+#include "doom1_wad.h"
 #include "doomtype.h"
-#include "m_argv.h"
-
 #include "w_file.h"
 
-extern wad_file_class_t stdc_wad_file;
+#include <string.h>
 
-/*
-#ifdef _WIN32
-extern wad_file_class_t win32_wad_file;
-#endif
-*/
+static wad_file_class_t doom1_wad_file_class = {W_OpenFile, W_CloseFile, W_Read};
 
-#ifdef HAVE_MMAP
-extern wad_file_class_t posix_wad_file;
-#endif 
-
-static wad_file_class_t *wad_file_classes[] = 
-{
-/*
-#ifdef _WIN32
-    &win32_wad_file,
-#endif
-*/
-#ifdef HAVE_MMAP
-    &posix_wad_file,
-#endif
-    &stdc_wad_file,
-};
+static wad_file_t doom1_wad_file = {&doom1_wad_file_class, (byte*)doom1_wad, sizeof(doom1_wad)};
 
 wad_file_t *W_OpenFile(char *path)
 {
-    wad_file_t *result;
-    int i;
-
-    //!
-    // Use the OS's virtual memory subsystem to map WAD files
-    // directly into memory.
-    //
-
-    if (!M_CheckParm("-mmap"))
+    if (strcmp(path, "doom1.wad") == 0)
     {
-        return stdc_wad_file.OpenFile(path);
+        return &doom1_wad_file;
     }
-
-    // Try all classes in order until we find one that works
-
-    result = NULL;
-
-    for (i = 0; i < arrlen(wad_file_classes); ++i)
+    else
     {
-        result = wad_file_classes[i]->OpenFile(path);
-
-        if (result != NULL)
-        {
-            break;
-        }
+        return NULL;
     }
-
-    return result;
 }
 
 void W_CloseFile(wad_file_t *wad)
 {
-    wad->file_class->CloseFile(wad);
+    (void)wad;
 }
 
 size_t W_Read(wad_file_t *wad, unsigned int offset,
               void *buffer, size_t buffer_len)
 {
-    return wad->file_class->Read(wad, offset, buffer, buffer_len);
+    if (offset > sizeof(doom1_wad))
+    {
+        return 0;
+    }
+
+    if (offset + buffer_len > sizeof(doom1_wad))
+    {
+        buffer_len = sizeof(doom1_wad) - offset;
+    }
+
+    memcpy(buffer, &doom1_wad[offset], buffer_len);
+
+    return buffer_len;
 }
 

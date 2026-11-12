@@ -701,53 +701,9 @@ char *D_TryFindWADByName(char *filename)
 
 char *D_FindIWAD(int mask, GameMission_t *mission)
 {
-    char *result;
-    char *iwadfile;
-    int iwadparm;
-    int i;
-
-    // Check for the -iwad parameter
-
-    //!
-    // Specify an IWAD file to use.
-    //
-    // @arg <file>
-    //
-
-    iwadparm = M_CheckParmWithArgs("-iwad", 1);
-
-    if (iwadparm)
-    {
-        // Search through IWAD dirs for an IWAD with the given name.
-
-        iwadfile = myargv[iwadparm + 1];
-
-        result = D_FindWADByName(iwadfile);
-
-        if (result == NULL)
-        {
-            I_Error("IWAD file '%s' not found!", iwadfile);
-        }
-        
-        *mission = IdentifyIWADByName(result, mask);
-    }
-    else
-    {
-        // Search through the list and look for an IWAD
-
-        printf("-iwad not specified, trying a few iwad names\n");
-
-        result = NULL;
-
-        BuildIWADDirList();
-    
-        for (i=0; result == NULL && i<num_iwad_dirs; ++i)
-        {
-            result = SearchDirectoryForIWAD(iwad_dirs[i], mask, mission);
-        }
-    }
-
-    return result;
+    (void)mask;
+    (void)mission;
+    return "doom1.wad";
 }
 
 // Find all IWADs in the IWAD search path matching the given mask.
