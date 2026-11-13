@@ -186,7 +186,7 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
             -DNDEBUG
             -D_DEFAULT_SOURCE
             -DDOOMGENERIC_RESX=320
-            -DOOOMGENERIC_RESY=200
+            -DDOOMGENERIC_RESY=200
             -DTT_IMP
             -I ${CMAKE_CURRENT_SOURCE_DIR}/src
             -I ${CMAKE_CURRENT_BINARY_DIR}
