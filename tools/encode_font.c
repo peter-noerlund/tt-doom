@@ -42,7 +42,6 @@ int main(int argc, char** argv)
         "\n"
         "const uint8_t %s[128][6] = {\n", name);
 
-    const uint8_t mapping[4] = {0, 1, 3, 4};
     for (int i = 0; i != 128; ++i)
     {
         fputs("    {", file);
@@ -50,12 +49,9 @@ int main(int argc, char** argv)
         {
             uint8_t pixels = (font4x6_basic[i][y / 2] >> (y % 2 == 1 ? 0 : 4)) & 0x0F;
             uint8_t value = 0;
-            for (int g = 0; g != 2; ++g)
+            for (int x = 0; x != 4; ++x)
             {
-                uint8_t group = pixels & 0x03;
-
-                value |= mapping[group] << (g * 4);
-                pixels >>= 2;
+                value |= ((pixels >> x) & 0x1) << (x * 2);
             }
 
             if (y != 0)

@@ -100,7 +100,7 @@ static void console_scroll(void)
     {
         for (int x = 0; x != 16; ++x)
         {
-            g_console_screen_buffer[y * 16 + x] = 0x003F0000;;
+            g_console_screen_buffer[y * 16 + x] = 0x003F0000;
         }
     }
 }
@@ -279,29 +279,10 @@ static uint32_t color_distance(uint8_t c1, uint8_t c2)
 void DG_DrawFrame()
 {
     static const uint8_t offsets[8] = {0, 3, 5, 7, 10, 13, 15, 17};
-    static const uint8_t encoding[16] = {
-        0,  // 0 0 
-        1,  // 1 0
-        2,  // 2 0
-        0,  // invalid
-        
-        3,  // 1 0
-        4,  // 1 1
-        5,  // 1 2
-        0,  // invalid
-        
-        6,  // 2 0
-        5,  // 2 1 - invalid, use 5 instead for now
-        7,  // 2 2
-        0,  // invalid
-
-        0,  // invalid
-        0,  // invalid
-        0,  // invalid
-        0   // invalid
-    };
     volatile uint32_t* dst = g_doom_screen_buffer;
     const pixel_t* src = DG_ScreenBuffer;
+
+    src += 4 * 320;
 
     for (int y = 4; y < 196; y += 2)
     {
@@ -335,10 +316,10 @@ void DG_DrawFrame()
 
             uint8_t avg_chrominance = chrominance_count == 0 ? 0 : total_chrominance / chrominance_count;
 
-            uint8_t rs[2] = {0, 0};
-            uint8_t gs[2] = {0, 0};
-            uint8_t bs[2] = {0, 0};
-            uint8_t counts[2] = {0, 0};
+            uint8_t rs[3] = {0, 0, 0};
+            uint8_t gs[3] = {0, 0, 0};
+            uint8_t bs[3] = {0, 0, 0};
+            uint8_t counts[3] = {0, 0};
             for (int dx = 0; dx != 8; ++dx)
             {
                 uint8_t p = pixels[dx];
@@ -356,11 +337,15 @@ void DG_DrawFrame()
                 gs[index] += g;
                 bs[index] += b;
                 counts[index]++;
+                rs[2] += r;
+                gs[2] += g;
+                bs[2] += b;
+                counts[2] += 2;
             }
 
-            uint8_t colors[3];
+            uint8_t colors[4];
             colors[0] = 0;
-            for (int i = 0; i != 2; ++i)
+            for (int i = 0; i != 3; ++i)
             {
                 uint8_t count = counts[i];
                 if (count != 0)
@@ -373,57 +358,38 @@ void DG_DrawFrame()
                 colors[i + 1] = (rs[i] << 4) | (gs[i] << 2) | bs[i];
             }
 
-            uint32_t chunk = 0;
-            for (int dx = 0; dx != 8; dx += 2)
+            uint32_t chunk = ((uint32_t)colors[2] << 24) | ((uint32_t)colors[1] << 16);
+            for (int dx = 0; dx != 8; ++dx)
             {
-                uint8_t mask = 0;
-                for (int i = 0; i != 2; ++i)
+                uint8_t p = pixels[dx];
+                uint32_t c = 4;
+
+                for (int i = 0; i != 4; ++i)
                 {
-                    if (pixels[dx + i] == 0)
+                    if (colors[i] == p)
                     {
-                        continue;
-                    }
-                    else if (chrominances[dx + i] < avg_chrominance)
-                    {
-                        mask |= 1 << (i * 2);
-                    }
-                    else
-                    {
-                        mask |= 2 << (i * 2);
+                        c = i;
+                        break;
                     }
                 }
 
-                if (mask == 0x9) // 10 01
+                if (c == 4)
                 {
-                    uint8_t p1 = pixels[dx];
-                    uint8_t p2 = pixels[dx + 1];
-
-                    mask = 0;
-                    uint32_t best_error = color_distance(p1, 0) + color_distance(p2, 0);
-                    for (int i1 = 0; i1 != 3; ++i1)
+                    c = 0;
+                    uint8_t best_error = color_distance(p, 0);
+                    for (int i = 1; i != 3; ++i)
                     {
-                        for (int i2 = 0; i2 != 3; ++i2)
+                        uint8_t error = color_distance(p, colors[i]);
+                        if (error < best_error)
                         {
-                            if ((i1 == 0 && i2 == 0) || (i1 == 2 && i2 == 1))
-                            {
-                                continue;
-                            }
-
-                            uint32_t error = color_distance(p1, colors[i1]) + color_distance(p2, colors[i2]);
-                            if (error < best_error)
-                            {
-                                best_error = error;
-                                mask = i2 << 2 | i1;
-                            }
+                            c = i;
+                            best_error = error;
                         }
                     }
                 }
 
-                chunk |= (uint32_t)encoding[mask] << (dx * 2);
+                chunk |= c << (dx * 2);
             }
-
-            chunk |= ((uint32_t)colors[2] << 24) | ((uint32_t)colors[1] << 16);
-            //chunk |= 0x300C0000;
 
             *dst++ = chunk;
 
