@@ -4,6 +4,11 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 project(tt-doom LANGUAGES C)
 
+option(TT_BENCHMARK "Run benchmark" OFF)
+option(TT_ECALL_QUIT "Call ecall on quit" OFF)
+
+set(TT_BENCHMARK_DEMO "demo1" CACHE STRING "Benchmark demo")
+
 find_package(doom1wad CONFIG REQUIRED)
 find_package(riscv-compiler CONFIG)
 find_package(riscv-picolibc CONFIG)
@@ -163,6 +168,14 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
         DEPENDS $<TARGET_FILE:encode-font>
     )
 
+    set(TT_EXTRA_ARGS "")
+    if (TT_BENCHMARK)
+        set(TT_EXTRA_ARGS ${TT_EXTRA_ARGS} -DTT_BENCHMARK "-DTT_BENCHMARK_DEMO=\\\"${TT_BENCHMARK_DEMO}\\\"")
+    endif()
+    if (TT_ECALL_QUIT)
+        set(TT_EXTRA_ARGS ${TT_EXTRA_ARGS} -DTT_ECALL_QUIT)
+    endif()
+
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.elf
         COMMAND
@@ -187,6 +200,7 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
             -D_DEFAULT_SOURCE
             -DDOOMGENERIC_RESX=320
             -DDOOMGENERIC_RESY=200
+            ${TT_EXTRA_ARGS}
             -DTT_IMP
             -I ${CMAKE_CURRENT_SOURCE_DIR}/src
             -I ${CMAKE_CURRENT_BINARY_DIR}

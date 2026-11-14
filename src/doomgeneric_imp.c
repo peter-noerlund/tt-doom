@@ -173,7 +173,15 @@ FILE* const stderr = &console_stdout;
 
 void _exit(int status)
 {
+
+#ifdef TT_ECALL_QUIT
+    __asm__ volatile (
+            "mv a1, %0\n"
+            "mv a0, zero\n"
+            "ecall" : : "r"(status));
+#else // TT_ECALL_QUIT
     (void)status;
+#endif // TT_ECALL_QUIT
     for (;;);
 }
 
@@ -453,7 +461,15 @@ int main()
 {
     console_init();
 
-    doomgeneric_Create(0, NULL);
+#if defined(TT_BENCHMARK)
+    char* argv[4] = {"doomgeneric-imp", "-timedemo", TT_BENCHMARK_DEMO, NULL};
+    int argc = 4;
+#else // TT_TIMEDEMO1 || TT_TIMEDEMO2 || TT_TIMEDEMO3
+    char** argv = NULL;
+    int argc = 0;
+#endif // TT_TIMEDEMO1 || TT_TIMEDEMO2 || TT_TIMEDEMO3
+
+    doomgeneric_Create(argc, argv);
 
     while (1)
     {
