@@ -9,6 +9,7 @@ The plan is to at least support the following:
 
 ## Optimization history
 
-| Commit     | Demo 1 | Demo 2 | Demo 3 | Description                           |
-|------------|-------:|-------:|-------:|---------------------------------------|
-| `a71bb6f3` |  0.132 |  0.129 |  0.130 | Reference with no optimization at all |
+| Commit     | Demo 1 | Demo 2 | Demo 3 | Description                                                     |
+|------------|-------:|-------:|-------:|-----------------------------------------------------------------|
+| `a71bb6f3` |  0.132 |  0.129 |  0.130 | Reference with no optimization at all                           |
+| `10691adf` |  0.246 |  0.235 |  0.237 | Use DOOM palette direcly, bypassing DOOM generic RGB conversion |
