@@ -1,5 +1,5 @@
-__flash = 0x8;
-__flash_size = 16376K;
+__flash = 0x10;
+__flash_size = 16383K;
 __ram = 0x01000800;
 __ram_size = 8180K;
 __stack_size = 512;
@@ -15,7 +15,7 @@ SECTIONS
     .vectors 0x0 :
     {
         KEEP(*(.vectors))
-        . = 0x08;
+        . = 0x10;
     } :vectors
 
     .scratch 0x01000000 (NOLOAD) :
