@@ -95,13 +95,15 @@ set(DOOM_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/z_zone.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/w_file_stdc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/i_input.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/i_video.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric.c
     ${CMAKE_CURRENT_BINARY_DIR}/doom1_wad.c
 )
 
 add_library(doom-base INTERFACE)
-target_sources(doom-base INTERFACE ${DOOM_SOURCES})
+target_sources(doom-base INTERFACE
+    ${DOOM_SOURCES}
+    src/i_video.c
+)
 target_include_directories(doom-base INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(file-to-c tools/file_to_c.c)
@@ -159,6 +161,7 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
     set(DOOM_SOURCES_IMP ${DOOM_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/init_imp.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/i_impvideo.c
         ${CMAKE_CURRENT_BINARY_DIR}/font_imp.c
     )
 
@@ -193,6 +196,8 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
             -Wno-format
             -Wno-unused-but-set-variable
             -Wno-unused-const-variable
+            -Wno-unused-variable
+            -Wno-dangling-pointer
             -o ${CMAKE_CURRENT_BINARY_DIR}/doomgeneric-imp.elf
             --specs=${RISCV_PICOLIBC}
             -T${CMAKE_CURRENT_SOURCE_DIR}/src/doomgeneric_imp.ld

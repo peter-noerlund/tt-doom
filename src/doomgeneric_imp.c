@@ -25,19 +25,18 @@
 #define SCREEN_BUFFER_CONSOLE 1
 #define SCREEN_BUFFER_DOOM 2
 
-static volatile uint32_t* g_devices = (volatile uint32_t*)0x2000000;
-static volatile uint32_t g_tick_count = 0;
-static volatile uint32_t* g_doom_screen_buffer = NULL;
-static volatile uint32_t* g_console_screen_buffer = NULL;
-static int g_screen_buffer = SCREEN_BUFFER_NONE;
-static int g_console_line = 0;
-static int g_console_column = 0;
+static volatile uint32_t* s_devices = (volatile uint32_t*)0x2000000;
+static volatile uint32_t s_tick_count = 0;
+static uint32_t* s_console_screen_buffer = NULL;
+static uint32_t* s_active_screen_buffer = NULL;
+static int s_console_line = 0;
+static int s_console_column = 0;
 
 void interrupt_handler()
 {
-    ++g_tick_count;
+    ++s_tick_count;
 
-    g_devices[DEVICE_TIMER] = 65000;
+    s_devices[DEVICE_TIMER] = 65000;
 }
 
 inline void set_csr_flags(uint16_t csr, uint32_t flags)
@@ -45,7 +44,7 @@ inline void set_csr_flags(uint16_t csr, uint32_t flags)
     __asm__ volatile ("csrs %0, %1" : : "i"(csr), "r"(flags));
 }
 
-static volatile uint32_t* allocate_screen_buffer(void)
+uint32_t* allocate_screen_buffer(void)
 {
     // Allocate screen buffer
     uint32_t* unaligned_buffer = (uint32_t*)calloc(16 * 128 * 2, 4);
@@ -58,27 +57,23 @@ static volatile uint32_t* allocate_screen_buffer(void)
     return (uint32_t*)ptr;
 }
 
-static void set_screen_buffer(int screen_buffer)
+void set_active_screen_buffer(uint32_t* screen_buffer)
 {
-    if (g_screen_buffer == screen_buffer)
+    if (s_active_screen_buffer == screen_buffer)
     {
         return;
     }
 
-    if (screen_buffer == SCREEN_BUFFER_DOOM)
+    if (screen_buffer == NULL)
     {
-        g_devices[DEVICE_VIDEO] = (uint32_t)g_doom_screen_buffer | 0x80000000;
-    }
-    else if (screen_buffer == SCREEN_BUFFER_CONSOLE)
-    {
-        g_devices[DEVICE_VIDEO] = (uint32_t)g_console_screen_buffer | 0x80000000;
+        s_devices[DEVICE_VIDEO] = 0;
     }
     else
     {
-        g_devices[DEVICE_VIDEO] = 0;
+        s_devices[DEVICE_VIDEO] = (uint32_t)screen_buffer | 0x80000000;
     }
 
-    g_screen_buffer = screen_buffer;
+    s_active_screen_buffer = screen_buffer;
 }
 
 static int console_getc(FILE* file)
@@ -93,14 +88,14 @@ static void console_scroll(void)
     {
         for (int x = 0; x != 16; ++x)
         {
-            g_console_screen_buffer[y * 16 + x] = g_console_screen_buffer[(y + 6) * 16 + x];
+            s_console_screen_buffer[y * 16 + x] = s_console_screen_buffer[(y + 6) * 16 + x];
         }
     }
     for (int y = 90; y != 96; ++y)
     {
         for (int x = 0; x != 16; ++x)
         {
-            g_console_screen_buffer[y * 16 + x] = 0x003F0000;
+            s_console_screen_buffer[y * 16 + x] = 0x003F0000;
         }
     }
 }
@@ -109,7 +104,7 @@ static int console_putc(char c, FILE* file)
 {
     (void)file;
 
-    set_screen_buffer(SCREEN_BUFFER_CONSOLE);
+    set_active_screen_buffer(s_console_screen_buffer);
 
     if ((c & 0x80) != 0)
     {
@@ -118,43 +113,43 @@ static int console_putc(char c, FILE* file)
 
     if (c == '\n')
     {
-        g_console_line++;
-        g_console_column = 0;
-        if (g_console_line == 16)
+        s_console_line++;
+        s_console_column = 0;
+        if (s_console_line == 16)
         {
             console_scroll();
-            g_console_line = 15;
+            s_console_line = 15;
         }
         return 0;
     }
 
-    if (g_console_column == 32)
+    if (s_console_column == 32)
     {
-        g_console_column = 0;
-        g_console_line++;
-        if (g_console_line == 16)
+        s_console_column = 0;
+        s_console_line++;
+        if (s_console_line == 16)
         {
             console_scroll();
-            g_console_line = 15;
+            s_console_line = 15;
         }
     }
 
-    volatile uint8_t* console = (volatile uint8_t*)g_console_screen_buffer;
+    volatile uint8_t* console = (volatile uint8_t*)s_console_screen_buffer;
     const uint8_t* glyph = font_imp[(unsigned char)c & 0x7F];
     for (int row = 0; row != 6; ++row)
     {
-        console[(g_console_line * 6 + row) * 64 + (g_console_column / 2) * 4 + (g_console_column % 2)] = glyph[row];
+        console[(s_console_line * 6 + row) * 64 + (s_console_column / 2) * 4 + (s_console_column % 2)] = glyph[row];
     }
-    g_console_column++;
+    s_console_column++;
 
     return 0;
 }
 
 static void console_init(void)
 {
-    g_console_screen_buffer = allocate_screen_buffer();
+    s_console_screen_buffer = allocate_screen_buffer();
 
-    volatile uint32_t* ptr = g_console_screen_buffer;
+    volatile uint32_t* ptr = s_console_screen_buffer;
     for (int y = 0; y != 96; ++y)
     {
         for (int x = 0; x != 16; ++x)
@@ -251,195 +246,32 @@ void DG_Init()
     set_csr_flags(CSR_MIE, MIE_TIMER);          // Enable timer interrupt
     set_csr_flags(CSR_MSTATUS, MSTATUS_MIE);    // Enable interrupts globally
 
-    g_devices[DEVICE_TIMER] = 65000; // Run timer at 1ms interval
+    s_devices[DEVICE_TIMER] = 65000; // Run timer at 1ms interval
 
     // Frame buffer is actually 128x96, but we run at 128x80
-    g_doom_screen_buffer = allocate_screen_buffer();
-}
-
-static uint8_t calculate_chrominance(uint8_t r, uint8_t g, uint8_t b)
-{
-    return r * 3 + g * 7 + b;
-}
-
-inline uint8_t diff(uint8_t a, uint8_t b)
-{
-    return a < b ? b - a : a - b;
-}
-
-static uint32_t color_distance(uint8_t c1, uint8_t c2)
-{
-    uint8_t r1 = c1 >> 4;
-    uint8_t r2 = c2 >> 4;
-    uint8_t g1 = (c1 >> 2) & 0x03;
-    uint8_t g2 = (c2 >> 2) & 0x03;
-    uint8_t b1 = c1 & 0x03;
-    uint8_t b2 = c2 & 0x03;
-
-    uint8_t rd = diff(r1, r2);
-    uint8_t gd = diff(g1, g2);
-    uint8_t bd = diff(b1, b2);
-
-    return (uint32_t)rd * rd + (uint32_t)gd * gd + (uint32_t)bd * bd;
-
 }
 
 void DG_DrawFrame()
 {
-    static const uint8_t offsets[8] = {0, 3, 5, 7, 10, 13, 15, 17};
-    volatile uint32_t* dst = g_doom_screen_buffer;
-    const pixel_t* src = DG_ScreenBuffer;
-
-    src += 4 * 320;
-
-    for (int y = 4; y < 196; y += 2)
-    {
-        for (int x = 0; x < 320; x += 20)
-        {
-            uint8_t pixels[8];
-            uint8_t chrominances[8];
-            uint16_t total_chrominance = 0;
-            uint8_t chrominance_count = 0;
-
-            for (int i = 0; i != 8; ++i)
-            {
-                uint32_t input_color = src[offsets[i]];
-                uint8_t r = (input_color >> (16 + 6)) & 0x03;
-                uint8_t g = (input_color >> (8 + 6)) & 0x03;
-                uint8_t b = (input_color >> 6) & 0x03;
-                uint8_t c = (r << 4) | (g << 2) | b;
-                pixels[i] = c;
-                if (c == 0)
-                {
-                    chrominances[i] = 0;
-                }
-                else
-                {
-                    uint8_t chrominance = calculate_chrominance(r, g, b);
-                    chrominances[i] = chrominance;
-                    total_chrominance += chrominance;
-                    chrominance_count++;
-                }
-            }
-
-            uint8_t avg_chrominance = chrominance_count == 0 ? 0 : total_chrominance / chrominance_count;
-
-            uint8_t rs[3] = {0, 0, 0};
-            uint8_t gs[3] = {0, 0, 0};
-            uint8_t bs[3] = {0, 0, 0};
-            uint8_t counts[3] = {0, 0};
-            for (int dx = 0; dx != 8; ++dx)
-            {
-                uint8_t p = pixels[dx];
-                if (p == 0)
-                {
-                    continue;
-                }
-                uint8_t r = p >> 4;
-                uint8_t g = (p >> 2) & 0x03;
-                uint8_t b = p & 0x03;
-
-                uint8_t index = chrominances[dx] < avg_chrominance ? 0 : 1;
-
-                rs[index] += r;
-                gs[index] += g;
-                bs[index] += b;
-                counts[index]++;
-                rs[2] += r;
-                gs[2] += g;
-                bs[2] += b;
-                counts[2] += 2;
-            }
-
-            uint8_t colors[4];
-            colors[0] = 0;
-            for (int i = 0; i != 3; ++i)
-            {
-                uint8_t count = counts[i];
-                if (count != 0)
-                {
-                    rs[i] /= count;
-                    gs[i] /= count;
-                    bs[i] /= count;
-                }
-
-                colors[i + 1] = (rs[i] << 4) | (gs[i] << 2) | bs[i];
-            }
-
-            uint32_t chunk = ((uint32_t)colors[2] << 24) | ((uint32_t)colors[1] << 16);
-            for (int dx = 0; dx != 8; ++dx)
-            {
-                uint8_t p = pixels[dx];
-                uint32_t c = 4;
-
-                for (int i = 0; i != 4; ++i)
-                {
-                    if (colors[i] == p)
-                    {
-                        c = i;
-                        break;
-                    }
-                }
-
-                if (c == 4)
-                {
-                    c = 0;
-                    uint8_t best_error = color_distance(p, 0);
-                    for (int i = 1; i != 3; ++i)
-                    {
-                        uint8_t error = color_distance(p, colors[i]);
-                        if (error < best_error)
-                        {
-                            c = i;
-                            best_error = error;
-                        }
-                    }
-                }
-
-                chunk |= c << (dx * 2);
-            }
-
-            *dst++ = chunk;
-
-            /*
-            if (y == 104 && x == 60)
-            {
-                printf("pix [%02hhX %02hhX %02hhX %02hhX %02hhX %02hhX %02hhX %02hhX]\n", pixels[0], pixels[1], pixels[2], pixels[3], pixels[4], pixels[5], pixels[6], pixels[7]);
-                printf("chr [%02hhX %02hhX %02hhX %02hhX %02hhX %02hhX %02hhX %02hhX]\n", chrominances[0], chrominances[1], chrominances[2], chrominances[3], chrominances[4], chrominances[5], chrominances[6], chrominances[7]);
-                printf("avg %02hhX\n", avg_chrominance);
-                printf("cnt [%02hhX %02hhX]\n", counts[0], counts[1]);
-                printf("col [%02hhX %02hhX %02hhX]\n", colors[0], colors[1], colors[2]);
-                printf("res %08X\n", chunk);
-                puts("");
-            }
-            */
-
-            src += 20;
-        }
-
-        src += 320;
-    }
-    
-    set_screen_buffer(SCREEN_BUFFER_DOOM);
 }
 
 void DG_SleepMs(uint32_t ms)
 {
-    uint32_t current_tick_count = g_tick_count;
+    uint32_t current_tick_count = s_tick_count;
     uint32_t target_tick_count = current_tick_count + ms;
 
     if (target_tick_count < current_tick_count)
     {
         // Timer overflows, so start by waiting until it overflows
-        while (g_tick_count > current_tick_count);
+        while (s_tick_count > current_tick_count);
     }
 
-    while (g_tick_count < target_tick_count);
+    while (s_tick_count < target_tick_count);
 }
 
 uint32_t DG_GetTicksMs()
 {
-    return (uint32_t)g_tick_count;
+    return (uint32_t)s_tick_count;
 }
 
 int DG_GetKey(int* pressed, unsigned char* doomKey)
