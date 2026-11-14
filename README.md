@@ -10,5 +10,5 @@ The plan is to at least support the following:
 ## Optimization history
 
 | Commit     | Demo 1 | Demo 2 | Demo 3 | Description                           |
-+------------+-------:|-------:|-------:|---------------------------------------+
+|------------|-------:|-------:|-------:|---------------------------------------|
 | `a71bb6f3` |  0.132 |  0.129 |  0.130 | Reference with no optimization at all |
