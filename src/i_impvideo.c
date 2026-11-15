@@ -78,28 +78,6 @@ void I_SetPalette(uint8_t* palette)
     }
 }
 
-inline uint8_t diff(uint8_t a, uint8_t b)
-{
-    return a < b ? b - a : a - b;
-}
-
-static uint32_t color_distance(uint8_t c1, uint8_t c2)
-{
-    // TODO - Lookup table
-    uint8_t r1 = c1 >> 4;
-    uint8_t r2 = c2 >> 4;
-    uint8_t g1 = (c1 >> 2) & 0x03;
-    uint8_t g2 = (c2 >> 2) & 0x03;
-    uint8_t b1 = c1 & 0x03;
-    uint8_t b2 = c2 & 0x03;
-
-    uint8_t rd = diff(r1, r2);
-    uint8_t gd = diff(g1, g2);
-    uint8_t bd = diff(b1, b2);
-
-    return (uint32_t)rd * rd + (uint32_t)gd * gd + (uint32_t)bd * bd;
-}
-
 void I_FinishUpdate()
 {
     static const uint8_t offsets[8] = {0, 3, 5, 7, 10, 13, 15, 17};
@@ -197,10 +175,10 @@ void I_FinishUpdate()
                 if (c == 4)
                 {
                     c = 0;
-                    uint8_t best_error = color_distance(p, 0);
+                    uint16_t best_error = g_color_distance_table[(uint16_t)p << 6];
                     for (int i = 1; i != 3; ++i)
                     {
-                        uint8_t error = color_distance(p, colors[i]);
+                        uint16_t error = g_color_distance_table[((uint16_t)p << 6) | colors[i]];
                         if (error < best_error)
                         {
                             c = i;
