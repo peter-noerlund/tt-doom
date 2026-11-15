@@ -14,4 +14,5 @@ The plan is to at least support the following:
 | `a71bb6f3` |  0.132 |  0.129 |  0.130 | Reference with no optimization at all                           |
 | `10691adf` |  0.246 |  0.235 |  0.237 | Use DOOM palette direcly, bypassing DOOM generic RGB conversion |
 | `6a765002` |  0.310 |  0.317 |  0.302 | Optimization of video encoding using looktables and a fast path |
-| `4d12516e` |  0.347 |  0.354 |  0.345 | Optimized version of FixedMul                                   |
+| `4d12516e` |  0.347 |  0.354 |  0.345 | Optimized version of `FixedMul`                                 |
+| `b1629cc1` |  0.365 |  0.370 |  0.359 | Optimized version of `__mulsi3`                                 | 
