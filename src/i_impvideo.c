@@ -93,94 +93,129 @@ void I_FinishUpdate()
         for (int x = 0; x != 320; x += 20)
         {
             uint8_t pixels[8];
-            uint8_t chrominances[8];
-            uint16_t total_chrominance = 0;
-            uint8_t chrominance_count = 0;
 
+            uint32_t c1 = 0;
+            uint32_t c2 = 0;
+            uint32_t chunk = 0;
+            int slow = 0;
             for (int i = 0; i != 8; ++i)
             {
                 uint8_t c = s_colors[src[offsets[i]]];
                 pixels[i] = c;
-                if (c == 0)
-                {
-                    chrominances[i] = 0;
-                }
-                else
-                {
-                    uint8_t chrominance = g_chrominance_table[c];
-                    chrominances[i] = chrominance;
-                    total_chrominance += chrominance;
-                    chrominance_count++;
-                }
-            }
-
-            uint8_t avg_chrominance = chrominance_count == 0 ? 0 : g_chrominance_division_table[total_chrominance][chrominance_count - 1];
-
-            uint16_t summable_color1 = 0;
-            uint16_t summable_color2 = 0;
-            uint16_t summable_color3 = 0;
-            uint8_t count1 = 0;
-            uint8_t count2 = 0;
-            uint8_t count3 = 0;
-            for (int dx = 0; dx != 8; ++dx)
-            {
-                uint_fast8_t c = pixels[dx];
-                if (c == 0)
+                if (slow || c == 0)
                 {
                     continue;
                 }
-                uint16_t summable_color = g_summable_table[c];
-                if (chrominances[dx] < avg_chrominance)
+                else if (c1 == 0 || c == c1)
                 {
-                    summable_color1 += summable_color;
-                    count1++;
+                    c1 = c;
+                    chunk |= 1 << (i * 2);
+                }
+                else if (c2 == 0 || c == c2)
+                {
+                    c2 = c;
+                    chunk |= 2 << (i * 2);
                 }
                 else
                 {
-                    summable_color2 += summable_color;
-                    count2++;
+                    slow = 1;
                 }
-                summable_color3 += summable_color;
-                count3 += 2;
             }
 
-            uint8_t colors[4];
-            colors[0] = 0;
-            colors[1] = count1 == 0 ? 0 : g_summable_division_table[summable_color1][count1 - 1];
-            colors[2] = count2 == 0 ? 0 : g_summable_division_table[summable_color2][count2 - 1];
-            colors[3] = count3 == 0 ? 0 : g_summable_division_table[summable_color3][count3 - 1];
-
-            uint32_t chunk = ((uint32_t)colors[2] << 24) | ((uint32_t)colors[1] << 16);
-            for (int dx = 0; dx != 8; ++dx)
+            if (slow)
             {
-                uint8_t p = pixels[dx];
-                uint32_t c = 4;
+                uint8_t chrominances[8];
+                uint16_t total_chrominance = 0;
+                uint8_t chrominance_count = 0;
 
-                for (int i = 0; i != 4; ++i)
+                for (int i = 0; i != 8; ++i)
                 {
-                    if (colors[i] == p)
+                    uint8_t c = pixels[i];
+                    if (c == 0)
                     {
-                        c = i;
-                        break;
+                        chrominances[i] = 0;
+                    }
+                    else
+                    {
+                        uint8_t chrominance = g_chrominance_table[c];
+                        chrominances[i] = chrominance;
+                        total_chrominance += chrominance;
+                        chrominance_count++;
                     }
                 }
 
-                if (c == 4)
+                uint8_t avg_chrominance = chrominance_count == 0 ? 0 : g_chrominance_division_table[total_chrominance][chrominance_count - 1];
+
+                uint16_t summable_color1 = 0;
+                uint16_t summable_color2 = 0;
+                uint16_t summable_color3 = 0;
+                uint8_t count1 = 0;
+                uint8_t count2 = 0;
+                uint8_t count3 = 0;
+                for (int dx = 0; dx != 8; ++dx)
                 {
-                    c = 0;
-                    uint8_t best_error = g_color_distance_table[0][p];
-                    for (int i = 1; i != 3; ++i)
+                    uint_fast8_t c = pixels[dx];
+                    if (c == 0)
                     {
-                        uint8_t error = g_color_distance_table[colors[i]][p];
-                        if (error < best_error)
+                        continue;
+                    }
+                    uint16_t summable_color = g_summable_table[c];
+                    if (chrominances[dx] < avg_chrominance)
+                    {
+                        summable_color1 += summable_color;
+                        count1++;
+                    }
+                    else
+                    {
+                        summable_color2 += summable_color;
+                        count2++;
+                    }
+                    summable_color3 += summable_color;
+                    count3 += 2;
+                }
+
+                uint8_t colors[4];
+                colors[0] = 0;
+                colors[1] = count1 == 0 ? 0 : g_summable_division_table[summable_color1][count1 - 1];
+                colors[2] = count2 == 0 ? 0 : g_summable_division_table[summable_color2][count2 - 1];
+                colors[3] = count3 == 0 ? 0 : g_summable_division_table[summable_color3][count3 - 1];
+
+                chunk = ((uint32_t)colors[2] << 24) | ((uint32_t)colors[1] << 16);
+                for (int dx = 0; dx != 8; ++dx)
+                {
+                    uint8_t p = pixels[dx];
+                    uint32_t c = 4;
+
+                    for (int i = 0; i != 4; ++i)
+                    {
+                        if (colors[i] == p)
                         {
                             c = i;
-                            best_error = error;
+                            break;
                         }
                     }
-                }
 
-                chunk |= c << (dx * 2);
+                    if (c == 4)
+                    {
+                        c = 0;
+                        uint8_t best_error = g_color_distance_table[0][p];
+                        for (int i = 1; i != 3; ++i)
+                        {
+                            uint8_t error = g_color_distance_table[colors[i]][p];
+                            if (error < best_error)
+                            {
+                                c = i;
+                                best_error = error;
+                            }
+                        }
+                    }
+
+                    chunk |= c << (dx * 2);
+                }
+            }
+            else
+            {
+                chunk |= (c2 << 24) | (c1 << 16);
             }
 
             *dst++ = chunk;
