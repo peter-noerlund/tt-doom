@@ -3,6 +3,7 @@
 #include "doomgeneric_imp.h"
 #include "imp_tables.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -115,47 +116,39 @@ void I_FinishUpdate()
 
             uint8_t avg_chrominance = chrominance_count == 0 ? 0 : total_chrominance / chrominance_count;
 
-            uint8_t rs[3] = {0, 0, 0};
-            uint8_t gs[3] = {0, 0, 0};
-            uint8_t bs[3] = {0, 0, 0};
-            uint8_t counts[3] = {0, 0};
+            uint16_t summable_color1 = 0;
+            uint16_t summable_color2 = 0;
+            uint16_t summable_color3 = 0;
+            uint8_t count1 = 0;
+            uint8_t count2 = 0;
+            uint8_t count3 = 0;
             for (int dx = 0; dx != 8; ++dx)
             {
-                uint8_t p = pixels[dx];
-                if (p == 0)
+                uint_fast8_t c = pixels[dx];
+                if (c == 0)
                 {
                     continue;
                 }
-                uint8_t r = p >> 4;
-                uint8_t g = (p >> 2) & 0x03;
-                uint8_t b = p & 0x03;
-
-                uint8_t index = chrominances[dx] < avg_chrominance ? 0 : 1;
-
-                rs[index] += r;
-                gs[index] += g;
-                bs[index] += b;
-                counts[index]++;
-                rs[2] += r;
-                gs[2] += g;
-                bs[2] += b;
-                counts[2] += 2;
+                uint16_t summable_color = g_summable_table[c];
+                if (chrominances[dx] < avg_chrominance)
+                {
+                    summable_color1 += summable_color;
+                    count1++;
+                }
+                else
+                {
+                    summable_color2 += summable_color;
+                    count2++;
+                }
+                summable_color3 += summable_color;
+                count3 += 2;
             }
 
             uint8_t colors[4];
             colors[0] = 0;
-            for (int i = 0; i != 3; ++i)
-            {
-                uint8_t count = counts[i];
-                if (count != 0)
-                {
-                    rs[i] /= count;
-                    gs[i] /= count;
-                    bs[i] /= count;
-                }
-
-                colors[i + 1] = (rs[i] << 4) | (gs[i] << 2) | bs[i];
-            }
+            colors[1] = count1 == 0 ? 0 : g_division_table[summable_color1][count1 - 1];
+            colors[2] = count2 == 0 ? 0 : g_division_table[summable_color2][count2 - 1];
+            colors[3] = count3 == 0 ? 0 : g_division_table[summable_color3][count3 - 1];
 
             uint32_t chunk = ((uint32_t)colors[2] << 24) | ((uint32_t)colors[1] << 16);
             for (int dx = 0; dx != 8; ++dx)
@@ -175,10 +168,10 @@ void I_FinishUpdate()
                 if (c == 4)
                 {
                     c = 0;
-                    uint16_t best_error = g_color_distance_table[(uint16_t)p << 6];
+                    uint8_t best_error = g_color_distance_table[0][p];
                     for (int i = 1; i != 3; ++i)
                     {
-                        uint16_t error = g_color_distance_table[((uint16_t)p << 6) | colors[i]];
+                        uint8_t error = g_color_distance_table[colors[i]][p];
                         if (error < best_error)
                         {
                             c = i;
