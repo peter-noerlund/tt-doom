@@ -61,22 +61,22 @@ __attribute__((naked)) fixed_t FixedMul(fixed_t a, fixed_t b)
         "sub a1, a1, t0\n"
 
         // Swap for optimization
-        "bgeu a0, a1, .MatMulNoSwap\n"
+        "bgeu a0, a1, .LMatMulNoSwap\n"
         "mv t0, a0\n"
         "mv a0, a1\n"
         "mv a1, t0\n"
 
         // Loop setup
-        ".MatMulNoSwap:\n"
+        ".LMatMulNoSwap:\n"
         "mv a2, a1\n"   // a2 = Multiplier (small)
         "mv a3, a0\n"   // a3 = mcand low
         "li a4, 0\n"    // a4 = mcand high
         "li t0, 0\n"    // t0 = prod low
         "li t1, 0\n"    // t1 = prod high
 
-        ".MatMulLoop:\n"
+        ".LMatMulLoop:\n"
         "andi t2, a2, 1\n"
-        "beqz t2, .MatMulSkip\n"
+        "beqz t2, .LMatMulSkip\n"
         
         // Add 64-bit product += mcand
         "add t0, t0, a3\n"  // lo += lo
@@ -84,20 +84,20 @@ __attribute__((naked)) fixed_t FixedMul(fixed_t a, fixed_t b)
         "add t1, t1, t2\n"  // hi += carry
         "add t1, t1, a4\n"  // hi += hi
 
-        ".MatMulSkip:\n"
+        ".LMatMulSkip:\n"
         "srli a2, a2, 1\n"  // multiplier >>= 1
-        "beqz a2, .MatMulSign\n"
+        "beqz a2, .LMatMulSign\n"
 
         // Shift 64-bit mand <<= 1
         "slli a4, a4, 1\n"  // hi << 1
         "srli t2, a3, 31\n" // extract MSB of lo
         "or a4, a4, t2\n"   // Merge MSB into hi
         "slli a3, a3, 1\n"  // lo << 1
-        "j .MatMulLoop\n"
+        "j .LMatMulLoop\n"
 
         // Restore sign
-        ".MatMulSign:\n"
-        "bgez a5, .MatMulDone\n"
+        ".LMatMulSign:\n"
+        "bgez a5, .LMatMulDone\n"
         
         // Negate 64-bit (prod = ~prod + 1)
         "not t0, t0\n"
@@ -107,7 +107,7 @@ __attribute__((naked)) fixed_t FixedMul(fixed_t a, fixed_t b)
         "add t1, t1, t2\n"  // hi += carry
 
         // Shift FRACBITS
-        ".MatMulDone:\n"
+        ".LMatMulDone:\n"
         "srli a0, t0, 16\n"
         "slli a1, t1, 16\n"
         "or a0, a1, a0\n"
