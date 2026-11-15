@@ -29,6 +29,39 @@ static void write_chrominance_table(FILE* file, const char* name)
     fputs("\n};\n", file);
 }
 
+static void write_chrominance_division_table(FILE* file, const char* name)
+{
+    fprintf(file, "const uint8_t %s[265][8] = {", name);
+
+    for (uint16_t c = 0; c != 265; c++)
+    {
+        if (c != 0)
+        {
+            fputc(',', file);
+        }
+        fputs("\n    {", file);
+
+        for (uint16_t count = 1; count != 9; ++count)
+        {
+            if (count != 1)
+            {
+                fputc(',', file);
+            }
+            uint16_t res = c / count;
+            if (res > 33)
+            {
+                res = 99;
+            }
+            fprintf(file, " %2hu", res);
+        }
+
+        fputc('}', file);
+    }
+
+    fputs("\n};\n", file);
+}
+
+
 inline uint8_t diff(uint8_t a, uint8_t b)
 {
     return a < b ? b - a : a - b;
@@ -102,7 +135,7 @@ static void write_summable_table(FILE* file, const char* name)
     fputs("\n};\n", file);
 }
 
-static void write_division_table(FILE* file, const char* name)
+static void write_summable_division_table(FILE* file, const char* name)
 {
     fprintf(file, "const uint8_t %s[32768][16] = {", name);
 
@@ -171,9 +204,10 @@ int main(int argc, char** argv)
         "#include <stdint.h>\n"
         "\n"
         "extern const uint8_t g_chrominance_table[64]; // Convert RGB222 to chrominance\n"
+        "extern const uint8_t g_chrominance_division_table[265][8]; // Convert RGB222 to chrominance\n"
         "extern const uint8_t g_color_distance_table[64][64]; // Calculate distance between two RGB222 colors\n"
         "extern const uint16_t g_summable_table[64]; // Expand RGB222 to RGB555 without adjusting color\n"
-        "extern const uint8_t g_division_table[32768][16]; // Divide RGB555 with value (index 0 is 1)\n",
+        "extern const uint8_t g_summable_division_table[32768][16]; // Divide RGB555 with value (index 0 is 1)\n",
         file
     );
     fclose(file);
@@ -189,9 +223,10 @@ int main(int argc, char** argv)
         "\n", file);
 
     write_chrominance_table(file, "g_chrominance_table");
+    write_chrominance_division_table(file, "g_chrominance_division_table");
     write_color_distance_table(file, "g_color_distance_table");
     write_summable_table(file, "g_summable_table");
-    write_division_table(file, "g_division_table");
+    write_summable_division_table(file, "g_summable_division_table");
 
     return EXIT_SUCCESS;
 }
