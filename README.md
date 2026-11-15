@@ -13,3 +13,4 @@ The plan is to at least support the following:
 |------------|-------:|-------:|-------:|-----------------------------------------------------------------|
 | `a71bb6f3` |  0.132 |  0.129 |  0.130 | Reference with no optimization at all                           |
 | `10691adf` |  0.246 |  0.235 |  0.237 | Use DOOM palette direcly, bypassing DOOM generic RGB conversion |
+| `6a765002` |  0.310 |  0.317 |  0.302 | Optimization of video encoding using looktables and a fast path |
