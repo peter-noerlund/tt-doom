@@ -237,6 +237,53 @@ int close(int fd)
     return -1;
 }
 
+__attribute__((naked)) int __mulsi3(int a, int b)
+{
+    __asm__(
+        // Determine result sign
+        "xor a4, a0, a1\n"
+
+        // Absolute values
+        "srai t0, a0, 31\n"
+        "xor a0, a0, t0\n"
+        "sub a0, a0, t0\n"
+        "srai t0, a1, 31\n"
+        "xor a1, a1, t0\n"
+        "sub a1, a1, t0\n"
+
+        // Swap for optimization
+        "bgeu a0, a1, .Lmulsi3Init\n"
+        "mv t0, a0\n"
+        "mv a0, a1\n"
+        "mv a1, t0\n"
+
+        // Loop setup
+        ".Lmulsi3Init:\n"
+        "mv a2, a0\n"
+        "li a0, 0\n"
+
+        // Loop
+        ".Lmulsi3Loop:\n"
+        "andi a3, a1, 1\n"
+        "beqz a3, .Lmulsi3Shift\n"
+        "add a0, a0, a2\n"
+        ".Lmulsi3Shift:\n"
+        "srli a1, a1, 1\n"
+        "slli a2, a2, 1\n"
+        "bnez a1, .Lmulsi3Loop\n"
+
+        // Restore sign
+        "bgez a4, .Lmulsi3Done\n"
+        "not a0, a0\n"
+        "addi a0, a0, 1\n"
+
+        ".Lmulsi3Done:\n"
+        "ret\n"
+    );
+}
+
+
+
 // DOOM stuff
 
 void DG_Init()
