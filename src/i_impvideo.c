@@ -1,6 +1,7 @@
 #include "i_video.h"
 
 #include "doomgeneric_imp.h"
+#include "imp_tables.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -77,12 +78,6 @@ void I_SetPalette(uint8_t* palette)
     }
 }
 
-static uint8_t calculate_chrominance(uint8_t r, uint8_t g, uint8_t b)
-{
-    // TODO - Lookup table
-    return r * 3 + g * 7 + b;
-}
-
 inline uint8_t diff(uint8_t a, uint8_t b)
 {
     return a < b ? b - a : a - b;
@@ -133,11 +128,7 @@ void I_FinishUpdate()
                 }
                 else
                 {
-                    uint8_t r = (c >> 4) & 0x03;
-                    uint8_t g = (c >> 2) & 0x03;
-                    uint8_t b = c & 0x03;
-
-                    uint8_t chrominance = calculate_chrominance(r, g, b);
+                    uint8_t chrominance = g_chrominance_table[c];
                     chrominances[i] = chrominance;
                     total_chrominance += chrominance;
                     chrominance_count++;
