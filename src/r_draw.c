@@ -132,11 +132,13 @@ void R_DrawColumn (void)
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
     // This is as fast as it gets.
+    const byte* source = dc_source;
+    const lighttable_t* colormap = dc_colormap;
     do 
     {
 	// Re-map color indices from wall texture column
 	//  using a lighting/special effects LUT.
-	*dest = dc_colormap[dc_source[(frac>>FRACBITS)&127]];
+	*dest = colormap[source[(frac>>FRACBITS)&127]];
 	
 	dest += SCREENWIDTH; 
 	frac += fracstep;
@@ -232,17 +234,19 @@ void R_DrawColumnLow (void)
 #endif 
     // Blocky mode, need to multiply by 2.
     x = dc_x << 1;
-    
+
     dest = ylookup[dc_yl] + columnofs[x];
     dest2 = ylookup[dc_yl] + columnofs[x+1];
-    
+
     fracstep = dc_iscale; 
     frac = dc_texturemid + (dc_yl-centery)*fracstep;
-    
+
+    const lighttable_t* colormap = dc_colormap;
+    const byte* source = dc_source;
     do 
     {
 	// Hack. Does not work corretly.
-	*dest2 = *dest = dc_colormap[dc_source[(frac>>FRACBITS)&127]];
+	*dest2 = *dest = colormap[source[(frac>>FRACBITS)&127]];
 	dest += SCREENWIDTH;
 	dest2 += SCREENWIDTH;
 	frac += fracstep; 
@@ -319,22 +323,27 @@ void R_DrawFuzzColumn (void)
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
     //  brighter than average).
+    const lighttable_t* local_colormaps = colormaps;
+    const int* local_fuzzoffset = fuzzoffset;
+    int local_fuzzpos = fuzzpos;
     do 
     {
 	// Lookup framebuffer, and retrieve
 	//  a pixel that is either one column
 	//  left or right of the current one.
 	// Add index from colormap to index.
-	*dest = colormaps[6*256+dest[fuzzoffset[fuzzpos]]]; 
+	*dest = local_colormaps[6*256+dest[local_fuzzoffset[local_fuzzpos]]];
 
 	// Clamp table lookup index.
-	if (++fuzzpos == FUZZTABLE) 
-	    fuzzpos = 0;
+	if (++local_fuzzpos == FUZZTABLE)
+	    local_fuzzpos = 0;
 	
 	dest += SCREENWIDTH;
 
 	frac += fracstep; 
     } while (count--); 
+
+    fuzzpos = local_fuzzpos;
 } 
 
 // low detail mode version
@@ -385,24 +394,29 @@ void R_DrawFuzzColumnLow (void)
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
     //  brighter than average).
+    const lighttable_t* local_colormaps = colormaps;
+    const int* local_fuzzoffset = fuzzoffset;
+    int local_fuzzpos = fuzzpos;
     do 
     {
 	// Lookup framebuffer, and retrieve
 	//  a pixel that is either one column
 	//  left or right of the current one.
 	// Add index from colormap to index.
-	*dest = colormaps[6*256+dest[fuzzoffset[fuzzpos]]]; 
-	*dest2 = colormaps[6*256+dest2[fuzzoffset[fuzzpos]]]; 
+	*dest = local_colormaps[6*256+dest[local_fuzzoffset[local_fuzzpos]]];
+	*dest2 = local_colormaps[6*256+dest2[local_fuzzoffset[local_fuzzpos]]];
 
 	// Clamp table lookup index.
-	if (++fuzzpos == FUZZTABLE) 
-	    fuzzpos = 0;
+	if (++local_fuzzpos == FUZZTABLE)
+	    local_fuzzpos = 0;
 	
 	dest += SCREENWIDTH;
 	dest2 += SCREENWIDTH;
 
 	frac += fracstep; 
-    } while (count--); 
+    } while (count--);
+
+    fuzzpos = local_fuzzpos;
 } 
  
   
@@ -451,6 +465,9 @@ void R_DrawTranslatedColumn (void)
     frac = dc_texturemid + (dc_yl-centery)*fracstep; 
 
     // Here we do an additional index re-mapping.
+    const lighttable_t* colormap = dc_colormap;
+    const byte* translation = dc_translation;
+    const byte* source = dc_source;
     do 
     {
 	// Translation tables are used
@@ -458,7 +475,7 @@ void R_DrawTranslatedColumn (void)
 	//  used with PLAY sprites.
 	// Thus the "green" ramp of the player 0 sprite
 	//  is mapped to gray, red, black/indigo. 
-	*dest = dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]];
+	*dest = colormap[translation[source[frac>>FRACBITS]]];
 	dest += SCREENWIDTH;
 	
 	frac += fracstep; 
@@ -501,6 +518,9 @@ void R_DrawTranslatedColumnLow (void)
     frac = dc_texturemid + (dc_yl-centery)*fracstep; 
 
     // Here we do an additional index re-mapping.
+    const lighttable_t* colormap = dc_colormap;
+    const byte* translation = dc_translation;
+    const byte* source = dc_source;
     do 
     {
 	// Translation tables are used
@@ -508,8 +528,8 @@ void R_DrawTranslatedColumnLow (void)
 	//  used with PLAY sprites.
 	// Thus the "green" ramp of the player 0 sprite
 	//  is mapped to gray, red, black/indigo. 
-	*dest = dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]];
-	*dest2 = dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]];
+	*dest = colormap[translation[source[frac>>FRACBITS]]];
+	*dest2 = colormap[translation[source[frac>>FRACBITS]]];
 	dest += SCREENWIDTH;
 	dest2 += SCREENWIDTH;
 	
@@ -622,6 +642,8 @@ void R_DrawSpan (void)
     // We do not check for zero spans here?
     count = ds_x2 - ds_x1;
 
+    const lighttable_t* colormap = ds_colormap;
+    const byte* source = ds_source;
     do
     {
 	// Calculate current texture index in u,v.
@@ -631,7 +653,7 @@ void R_DrawSpan (void)
 
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.
-	*dest++ = ds_colormap[ds_source[spot]];
+	*dest++ = colormap[source[spot]];
 
         position += step;
 
@@ -749,6 +771,8 @@ void R_DrawSpanLow (void)
 
     dest = ylookup[ds_y] + columnofs[ds_x1];
 
+    const lighttable_t* colormap = ds_colormap;
+    const byte* source = ds_source;
     do
     {
 	// Calculate current texture index in u,v.
@@ -758,8 +782,8 @@ void R_DrawSpanLow (void)
 
 	// Lowres/blocky mode does it twice,
 	//  while scale is adjusted appropriately.
-	*dest++ = ds_colormap[ds_source[spot]];
-	*dest++ = ds_colormap[ds_source[spot]];
+	*dest++ = colormap[source[spot]];
+	*dest++ = colormap[source[spot]];
 
 	position += step;
 
