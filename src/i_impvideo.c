@@ -81,7 +81,7 @@ void I_SetPalette(uint8_t* palette)
 
 void I_FinishUpdate()
 {
-    static const uint8_t offsets[8] = {0, 3, 5, 7, 10, 13, 15, 17};
+    static const uint8_t offsets[8] = {0, 2, 5, 7, 10, 12, 15, 17};
     uint32_t* dst = s_doom_screen_buffer;
     const byte* src = I_VideoBuffer;
 

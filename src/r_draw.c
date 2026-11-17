@@ -61,7 +61,10 @@ int		viewheight;
 int		viewwindowx;
 int		viewwindowy; 
 byte*		ylookup[MAXHEIGHT]; 
-int		columnofs[MAXWIDTH]; 
+int		columnofs[MAXWIDTH];
+
+static boolean	s_valid_x[MAXWIDTH];
+
 
 // Color tables for different players,
 //  translate a limited part to another
@@ -105,7 +108,12 @@ void R_DrawColumn (void)
     byte*		dest; 
     fixed_t		frac;
     fixed_t		fracstep;	 
- 
+
+    if (!s_valid_x[dc_x])
+    {
+	return;
+    }
+
     count = dc_yh - dc_yl; 
 
     // Zero length, column does not exceed a pixel.
@@ -117,7 +125,7 @@ void R_DrawColumn (void)
 	|| dc_yl < 0
 	|| dc_yh >= SCREENHEIGHT) 
 	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
-#endif 
+#endif
 
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
@@ -207,54 +215,6 @@ void R_DrawColumn (void)
 #endif
 
 
-void R_DrawColumnLow (void) 
-{ 
-    int			count; 
-    byte*		dest; 
-    byte*		dest2;
-    fixed_t		frac;
-    fixed_t		fracstep;	 
-    int                 x;
- 
-    count = dc_yh - dc_yl; 
-
-    // Zero length.
-    if (count < 0) 
-	return; 
-				 
-#ifdef RANGECHECK 
-    if ((unsigned)dc_x >= SCREENWIDTH
-	|| dc_yl < 0
-	|| dc_yh >= SCREENHEIGHT)
-    {
-	
-	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x);
-    }
-    //	dccount++; 
-#endif 
-    // Blocky mode, need to multiply by 2.
-    x = dc_x << 1;
-
-    dest = ylookup[dc_yl] + columnofs[x];
-    dest2 = ylookup[dc_yl] + columnofs[x+1];
-
-    fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep;
-
-    const lighttable_t* colormap = dc_colormap;
-    const byte* source = dc_source;
-    do 
-    {
-	// Hack. Does not work corretly.
-	*dest2 = *dest = colormap[source[(frac>>FRACBITS)&127]];
-	dest += SCREENWIDTH;
-	dest2 += SCREENWIDTH;
-	frac += fracstep; 
-
-    } while (count--);
-}
-
-
 //
 // Spectre/Invisibility.
 //
@@ -290,6 +250,11 @@ void R_DrawFuzzColumn (void)
     byte*		dest; 
     fixed_t		frac;
     fixed_t		fracstep;	 
+
+    if (!s_valid_x[dc_x])
+    {
+	return;
+    }
 
     // Adjust borders. Low... 
     if (!dc_yl) 
@@ -346,83 +311,6 @@ void R_DrawFuzzColumn (void)
     fuzzpos = local_fuzzpos;
 } 
 
-// low detail mode version
- 
-void R_DrawFuzzColumnLow (void) 
-{ 
-    int			count; 
-    byte*		dest; 
-    byte*		dest2; 
-    fixed_t		frac;
-    fixed_t		fracstep;	 
-    int x;
-
-    // Adjust borders. Low... 
-    if (!dc_yl) 
-	dc_yl = 1;
-
-    // .. and high.
-    if (dc_yh == viewheight-1) 
-	dc_yh = viewheight - 2; 
-		 
-    count = dc_yh - dc_yl; 
-
-    // Zero length.
-    if (count < 0) 
-	return; 
-
-    // low detail mode, need to multiply by 2
-    
-    x = dc_x << 1;
-    
-#ifdef RANGECHECK 
-    if ((unsigned)x >= SCREENWIDTH
-	|| dc_yl < 0 || dc_yh >= SCREENHEIGHT)
-    {
-	I_Error ("R_DrawFuzzColumn: %i to %i at %i",
-		 dc_yl, dc_yh, dc_x);
-    }
-#endif
-    
-    dest = ylookup[dc_yl] + columnofs[x];
-    dest2 = ylookup[dc_yl] + columnofs[x+1];
-
-    // Looks familiar.
-    fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
-
-    // Looks like an attempt at dithering,
-    //  using the colormap #6 (of 0-31, a bit
-    //  brighter than average).
-    const lighttable_t* local_colormaps = colormaps;
-    const int* local_fuzzoffset = fuzzoffset;
-    int local_fuzzpos = fuzzpos;
-    do 
-    {
-	// Lookup framebuffer, and retrieve
-	//  a pixel that is either one column
-	//  left or right of the current one.
-	// Add index from colormap to index.
-	*dest = local_colormaps[6*256+dest[local_fuzzoffset[local_fuzzpos]]];
-	*dest2 = local_colormaps[6*256+dest2[local_fuzzoffset[local_fuzzpos]]];
-
-	// Clamp table lookup index.
-	if (++local_fuzzpos == FUZZTABLE)
-	    local_fuzzpos = 0;
-	
-	dest += SCREENWIDTH;
-	dest2 += SCREENWIDTH;
-
-	frac += fracstep; 
-    } while (count--);
-
-    fuzzpos = local_fuzzpos;
-} 
- 
-  
-  
- 
-
 //
 // R_DrawTranslatedColumn
 // Used to draw player sprites
@@ -440,7 +328,12 @@ void R_DrawTranslatedColumn (void)
     int			count; 
     byte*		dest; 
     fixed_t		frac;
-    fixed_t		fracstep;	 
+    fixed_t		fracstep;
+
+    if (!s_valid_x[dc_x])
+    {
+	return;
+    }
  
     count = dc_yh - dc_yl; 
     if (count < 0) 
@@ -462,7 +355,7 @@ void R_DrawTranslatedColumn (void)
 
     // Looks familiar.
     fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
 
     // Here we do an additional index re-mapping.
     const lighttable_t* colormap = dc_colormap;
@@ -481,64 +374,6 @@ void R_DrawTranslatedColumn (void)
 	frac += fracstep; 
     } while (count--); 
 } 
-
-void R_DrawTranslatedColumnLow (void) 
-{ 
-    int			count; 
-    byte*		dest; 
-    byte*		dest2; 
-    fixed_t		frac;
-    fixed_t		fracstep;	 
-    int                 x;
- 
-    count = dc_yh - dc_yl; 
-    if (count < 0) 
-	return; 
-
-    // low detail, need to scale by 2
-    x = dc_x << 1;
-				 
-#ifdef RANGECHECK 
-    if ((unsigned)x >= SCREENWIDTH
-	|| dc_yl < 0
-	|| dc_yh >= SCREENHEIGHT)
-    {
-	I_Error ( "R_DrawColumn: %i to %i at %i",
-		  dc_yl, dc_yh, x);
-    }
-    
-#endif 
-
-
-    dest = ylookup[dc_yl] + columnofs[x]; 
-    dest2 = ylookup[dc_yl] + columnofs[x+1]; 
-
-    // Looks familiar.
-    fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
-
-    // Here we do an additional index re-mapping.
-    const lighttable_t* colormap = dc_colormap;
-    const byte* translation = dc_translation;
-    const byte* source = dc_source;
-    do 
-    {
-	// Translation tables are used
-	//  to map certain colorramps to other ones,
-	//  used with PLAY sprites.
-	// Thus the "green" ramp of the player 0 sprite
-	//  is mapped to gray, red, black/indigo. 
-	*dest = colormap[translation[source[frac>>FRACBITS]]];
-	*dest2 = colormap[translation[source[frac>>FRACBITS]]];
-	dest += SCREENWIDTH;
-	dest2 += SCREENWIDTH;
-	
-	frac += fracstep; 
-    } while (count--); 
-} 
-
-
-
 
 //
 // R_InitTranslationTables
@@ -611,7 +446,6 @@ void R_DrawSpan (void)
 { 
     unsigned int position, step;
     byte *dest;
-    int count;
     int spot;
     unsigned int xtemp, ytemp;
 
@@ -639,155 +473,29 @@ void R_DrawSpan (void)
 
     dest = ylookup[ds_y] + columnofs[ds_x1];
 
-    // We do not check for zero spans here?
-    count = ds_x2 - ds_x1;
-
     const lighttable_t* colormap = ds_colormap;
     const byte* source = ds_source;
-    do
+    const boolean* valid_x = s_valid_x;
+    for (int x = ds_x1; x != ds_x2; ++x)
     {
-	// Calculate current texture index in u,v.
-        ytemp = (position >> 4) & 0x0fc0;
-        xtemp = (position >> 26);
-        spot = xtemp | ytemp;
+	if (valid_x[x])
+	{
+	    // Calculate current texture index in u,v.
+       	    ytemp = (position >> 4) & 0x0fc0;
+       	    xtemp = (position >> 26);
+       	    spot = xtemp | ytemp;
 
-	// Lookup pixel from flat texture tile,
-	//  re-index using light/colormap.
-	*dest++ = colormap[source[spot]];
+	    // Lookup pixel from flat texture tile,
+	    //  re-index using light/colormap.
+	    *dest++ = colormap[source[spot]];
+	}
+	else
+	{
+	    dest++;
+	}
 
         position += step;
-
-    } while (count--);
-}
-
-
-
-// UNUSED.
-// Loop unrolled by 4.
-#if 0
-void R_DrawSpan (void) 
-{ 
-    unsigned	position, step;
-
-    byte*	source;
-    byte*	colormap;
-    byte*	dest;
-    
-    unsigned	count;
-    usingned	spot; 
-    unsigned	value;
-    unsigned	temp;
-    unsigned	xtemp;
-    unsigned	ytemp;
-		
-    position = ((ds_xfrac<<10)&0xffff0000) | ((ds_yfrac>>6)&0xffff);
-    step = ((ds_xstep<<10)&0xffff0000) | ((ds_ystep>>6)&0xffff);
-		
-    source = ds_source;
-    colormap = ds_colormap;
-    dest = ylookup[ds_y] + columnofs[ds_x1];	 
-    count = ds_x2 - ds_x1 + 1; 
-	
-    while (count >= 4) 
-    { 
-	ytemp = position>>4;
-	ytemp = ytemp & 4032;
-	xtemp = position>>26;
-	spot = xtemp | ytemp;
-	position += step;
-	dest[0] = colormap[source[spot]]; 
-
-	ytemp = position>>4;
-	ytemp = ytemp & 4032;
-	xtemp = position>>26;
-	spot = xtemp | ytemp;
-	position += step;
-	dest[1] = colormap[source[spot]];
-	
-	ytemp = position>>4;
-	ytemp = ytemp & 4032;
-	xtemp = position>>26;
-	spot = xtemp | ytemp;
-	position += step;
-	dest[2] = colormap[source[spot]];
-	
-	ytemp = position>>4;
-	ytemp = ytemp & 4032;
-	xtemp = position>>26;
-	spot = xtemp | ytemp;
-	position += step;
-	dest[3] = colormap[source[spot]]; 
-		
-	count -= 4;
-	dest += 4;
-    } 
-    while (count > 0) 
-    { 
-	ytemp = position>>4;
-	ytemp = ytemp & 4032;
-	xtemp = position>>26;
-	spot = xtemp | ytemp;
-	position += step;
-	*dest++ = colormap[source[spot]]; 
-	count--;
-    } 
-} 
-#endif
-
-
-//
-// Again..
-//
-void R_DrawSpanLow (void)
-{
-    unsigned int position, step;
-    unsigned int xtemp, ytemp;
-    byte *dest;
-    int count;
-    int spot;
-
-#ifdef RANGECHECK
-    if (ds_x2 < ds_x1
-	|| ds_x1<0
-	|| ds_x2>=SCREENWIDTH
-	|| (unsigned)ds_y>SCREENHEIGHT)
-    {
-	I_Error( "R_DrawSpan: %i to %i at %i",
-		 ds_x1,ds_x2,ds_y);
     }
-//	dscount++; 
-#endif
-
-    position = ((ds_xfrac << 10) & 0xffff0000)
-             | ((ds_yfrac >> 6)  & 0x0000ffff);
-    step = ((ds_xstep << 10) & 0xffff0000)
-         | ((ds_ystep >> 6)  & 0x0000ffff);
-
-    count = (ds_x2 - ds_x1);
-
-    // Blocky mode, need to multiply by 2.
-    ds_x1 <<= 1;
-    ds_x2 <<= 1;
-
-    dest = ylookup[ds_y] + columnofs[ds_x1];
-
-    const lighttable_t* colormap = ds_colormap;
-    const byte* source = ds_source;
-    do
-    {
-	// Calculate current texture index in u,v.
-        ytemp = (position >> 4) & 0x0fc0;
-        xtemp = (position >> 26);
-        spot = xtemp | ytemp;
-
-	// Lowres/blocky mode does it twice,
-	//  while scale is adjusted appropriately.
-	*dest++ = colormap[source[spot]];
-	*dest++ = colormap[source[spot]];
-
-	position += step;
-
-    } while (count--);
 }
 
 //
@@ -822,6 +530,17 @@ R_InitBuffer
     // Preclaculate all row offsets.
     for (i=0 ; i<height ; i++) 
 	ylookup[i] = I_VideoBuffer + (i+viewwindowy)*SCREENWIDTH; 
+
+#ifndef TT_WIDTH
+#define TT_WIDTH SCREENWIDTH
+#endif // TT_WIDTH
+
+    fixed_t x_scale = (SCREENWIDTH << FRACBITS) / TT_WIDTH;
+    fixed_t fracwidth = SCREENWIDTH << FRACBITS;
+    for (fixed_t x = 0; x < fracwidth; x += x_scale)
+    {
+	s_valid_x[x >> FRACBITS] = true;
+    }
 } 
  
  

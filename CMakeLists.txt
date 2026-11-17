@@ -217,6 +217,7 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
             -D_DEFAULT_SOURCE
             -DDOOMGENERIC_RESX=320
             -DDOOMGENERIC_RESY=200
+            -DTT_WIDTH=128
             ${TT_EXTRA_ARGS}
             -DTT_IMP
             -I ${CMAKE_CURRENT_SOURCE_DIR}/src
