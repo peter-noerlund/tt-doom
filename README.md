@@ -16,3 +16,4 @@ The plan is to at least support the following:
 | `6a765002` |  0.310 |  0.317 |  0.302 | Optimization of video encoding using looktables and a fast path |
 | `4d12516e` |  0.347 |  0.354 |  0.345 | Optimized version of `FixedMul`                                 |
 | `b1629cc1` |  0.365 |  0.370 |  0.359 | Optimized version of `__mulsi3`                                 | 
+| `07cd14ad` |  0.401 |  0.406 |  0.393 | No global variables in draw loops                               |
