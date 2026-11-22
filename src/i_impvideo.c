@@ -199,7 +199,7 @@ void I_FinishUpdate()
                     {
                         c = 0;
                         uint8_t best_error = g_color_distance_table[0][p];
-                        for (int i = 1; i != 3; ++i)
+                        for (int i = 1; i != 4; ++i)
                         {
                             uint8_t error = g_color_distance_table[colors[i]][p];
                             if (error < best_error)
