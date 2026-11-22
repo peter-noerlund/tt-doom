@@ -198,9 +198,10 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
             -march=rv32ezicsr
             -mabi=ilp32e
             -mstrict-align
-            -mcmodel=medany
+            -mcmodel=medlow
             -mtune=size
             -mno-relax
+            -mno-save-restore
             -Wl,--no-relax
             -fno-builtin
             -O3
