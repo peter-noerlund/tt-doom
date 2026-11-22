@@ -47,7 +47,7 @@ inline void set_csr_flags(uint16_t csr, uint32_t flags)
 uint32_t* allocate_screen_buffer(void)
 {
     // Allocate screen buffer
-    uint32_t* unaligned_buffer = (uint32_t*)calloc(16 * 128 * 2, 4);
+    uint32_t* unaligned_buffer = (uint32_t*)malloc(64 * 128 * 2);
     uintptr_t ptr = (uintptr_t)unaligned_buffer;
     if ((ptr % VIDEO_BUFFER_ALIGNMENT) != 0)
     {
@@ -149,7 +149,7 @@ static void console_init(void)
 {
     s_console_screen_buffer = allocate_screen_buffer();
 
-    volatile uint32_t* ptr = s_console_screen_buffer;
+    uint32_t* ptr = s_console_screen_buffer;
     for (int y = 0; y != 96; ++y)
     {
         for (int x = 0; x != 16; ++x)
@@ -282,14 +282,12 @@ __attribute__((naked)) int __mulsi3(int a, int b)
     );
 }
 
-
-
 // DOOM stuff
 
 void DG_Init()
 {
     // Enable timer interrupts
-    set_csr_flags(CSR_MTVEC, 0x00000004);       // Just for show, it is hardcoded in hardware.
+    set_csr_flags(CSR_MTVEC, 0x00000008);       // Just for show, it is hardcoded in hardware.
     set_csr_flags(CSR_MIE, MIE_TIMER);          // Enable timer interrupt
     set_csr_flags(CSR_MSTATUS, MSTATUS_MIE);    // Enable interrupts globally
 
@@ -332,6 +330,70 @@ int DG_GetKey(int* pressed, unsigned char* doomKey)
 void DG_SetWindowTitle(const char* title)
 {
     (void)title;
+}
+
+void* memcpy(void* dst, const void* src, size_t n)
+{
+    uint8_t* dst8 = (uint8_t*)dst;
+    const uint8_t* src8 = (const uint8_t*)src;
+
+    if (((uintptr_t)dst8 & 0x3) == ((uintptr_t)src8 & 0x3))
+    {
+        while (((uintptr_t)src8 & 0x3) != 0 && n > 0)
+        {
+            *dst8++ = *src8++;
+            n--;
+        }
+
+        uint32_t* dst32 = (uint32_t*)dst8;
+        const uint32_t* src32 = (const uint32_t*)src8;
+        while (n >= 4)
+        {
+            *dst32++ = *src32++;
+            n -= 4;
+        }
+
+        dst8 = (uint8_t*)dst32;
+        src8 = (const uint8_t*)src32;
+    }
+
+    while (n > 0)
+    {
+        *dst8++ = *src8++;
+        n--;
+    }
+
+    return dst;
+}
+
+void* memset(void* dst, int c, size_t n)
+{
+    uint8_t* dst8 = (uint8_t*)dst;
+    while (((uintptr_t)dst8 & 0x3) != 0 && n > 0)
+    {
+        *dst8++ = c;
+        n--;
+    }
+    if (n >= 4)
+    {
+        uint32_t c32 = (c << 24) | (c << 16) | (c << 8) | c;
+        uint32_t* dst32 = (uint32_t*)dst8;
+
+        do
+        {
+            *dst32++ = c32;
+            n -= 4;
+        } while (n >= 4);
+
+        dst8 = (uint8_t*)dst32;
+    }
+    while (n > 0)
+    {
+        *dst8++ = c;
+        n--;
+    }
+
+    return dst;
 }
 
 // Entry
