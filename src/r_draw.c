@@ -63,7 +63,7 @@ int		viewwindowy;
 byte*		ylookup[MAXHEIGHT]; 
 int		columnofs[MAXWIDTH];
 
-static boolean	s_valid_x[MAXWIDTH];
+boolean	g_valid_x[MAXWIDTH];
 
 
 // Color tables for different players,
@@ -109,7 +109,7 @@ void R_DrawColumn (void)
     fixed_t		frac;
     fixed_t		fracstep;	 
 
-    if (!s_valid_x[dc_x])
+    if (!g_valid_x[dc_x])
     {
 	return;
     }
@@ -251,7 +251,7 @@ void R_DrawFuzzColumn (void)
     fixed_t		frac;
     fixed_t		fracstep;	 
 
-    if (!s_valid_x[dc_x])
+    if (!g_valid_x[dc_x])
     {
 	return;
     }
@@ -330,7 +330,7 @@ void R_DrawTranslatedColumn (void)
     fixed_t		frac;
     fixed_t		fracstep;
 
-    if (!s_valid_x[dc_x])
+    if (!g_valid_x[dc_x])
     {
 	return;
     }
@@ -475,7 +475,7 @@ void R_DrawSpan (void)
 
     const lighttable_t* colormap = ds_colormap;
     const byte* source = ds_source;
-    const boolean* valid_x = s_valid_x;
+    const boolean* valid_x = g_valid_x;
     for (int x = ds_x1; x != ds_x2; ++x)
     {
 	if (valid_x[x])
@@ -539,7 +539,7 @@ R_InitBuffer
     fixed_t fracwidth = SCREENWIDTH << FRACBITS;
     for (fixed_t x = 0; x < fracwidth; x += x_scale)
     {
-	s_valid_x[x >> FRACBITS] = true;
+	g_valid_x[x >> FRACBITS] = true;
     }
 } 
  

@@ -31,6 +31,9 @@
 #include "z_zone.h"
 #include "w_wad.h"
 
+#include "doomtype.h"
+#include "r_defs.h"
+#include "r_draw.h"
 #include "r_local.h"
 
 #include "doomstat.h"
@@ -345,6 +348,11 @@ void R_DrawMaskedColumn (column_t* column)
     int		topscreen;
     int 	bottomscreen;
     fixed_t	basetexturemid;
+
+    if (!g_valid_x[dc_x])
+    {
+        return;
+    }
 	
     basetexturemid = dc_texturemid;
 	
@@ -418,9 +426,15 @@ R_DrawVisSprite
     frac = vis->startfrac;
     spryscale = vis->scale;
     sprtopscreen = centeryfrac - FixedMul(dc_texturemid,spryscale);
-	
+
+    const boolean* valid_x = g_valid_x;
     for (dc_x=vis->x1 ; dc_x<=vis->x2 ; dc_x++, frac += vis->xiscale)
     {
+        if (!valid_x[dc_x])
+        {
+            continue;
+        }
+
 	texturecolumn = frac>>FRACBITS;
 #ifdef RANGECHECK
 	if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))

@@ -22,6 +22,7 @@
 
 
 
+extern boolean g_valid_x[1120];
 
 extern lighttable_t*	dc_colormap;
 extern int		dc_x;
