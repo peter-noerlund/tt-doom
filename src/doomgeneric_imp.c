@@ -237,9 +237,20 @@ int close(int fd)
     return -1;
 }
 
+#ifndef __riscv_mul
+
+#ifdef __riscv_zmmul
+
 __attribute__((naked)) int __mulsi3(int a, int b)
 {
-    __asm__(
+    __asm__ volatile ("mul a0, a0, a1");
+}
+
+#else // __riscv_zmul
+
+__attribute__((naked)) int __mulsi3(int a, int b)
+{
+    __asm__ volatile (
         // Determine result sign
         "xor a4, a0, a1\n"
 
@@ -281,6 +292,10 @@ __attribute__((naked)) int __mulsi3(int a, int b)
         "ret\n"
     );
 }
+
+#endif // __riscv_zmmul
+
+#endif // __riscv_mul
 
 // DOOM stuff
 
