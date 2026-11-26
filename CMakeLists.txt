@@ -6,6 +6,7 @@ project(tt-doom LANGUAGES C)
 
 option(TT_BENCHMARK "Run benchmark" OFF)
 option(TT_ECALL_QUIT "Call ecall on quit" OFF)
+option(TT_XMUL16 "Enable Xmul16 extension" OFF)
 
 set(TT_BENCHMARK_DEMO "demo1" CACHE STRING "Benchmark demo")
 
@@ -189,6 +190,9 @@ if(riscv-compiler_FOUND AND riscv-picolibc_FOUND)
     endif()
     if (TT_ECALL_QUIT)
         set(TT_EXTRA_ARGS ${TT_EXTRA_ARGS} -DTT_ECALL_QUIT)
+    endif()
+    if(TT_XMUL16)
+        set(TT_EXTRA_ARGS ${TT_EXTRA_ARGS} -DTT_XMUL16)
     endif()
 
     add_custom_command(

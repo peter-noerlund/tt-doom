@@ -243,10 +243,29 @@ int close(int fd)
 
 __attribute__((naked)) int __mulsi3(int a, int b)
 {
-    __asm__ volatile ("mul a0, a0, a1");
+    __asm__ volatile (
+        "mul a0, a0, a1\n"
+        "ret\n");
 }
 
-#else // __riscv_zmul
+#elif defined(TT_XMUL16)
+
+__attribute__((naked)) int __mulsi3(int a, int b)
+{
+    __asm__ volatile (
+        "srli t0, a0, 16\n"                 // ah
+        "srli t1, a1, 16\n"                 // bh
+        ".insn r 0x0b, 2, 0, t2, a0, a1\n"  // t2 = al*bl (mul16u)
+        ".insn r 0x0b, 1, 0, t0, t0, a1\n"  // t0 = ah*bl (mul16su)
+        ".insn r 0x0b, 1, 0, t1, t1, a0\n"  // t1 = al*bh (mul16su)
+        "add t0, t0, t1\n"
+        "slli t0, t0, 16\n"
+        "add a0, t2, t0\n"
+        "ret\n"
+    );
+}
+
+#else // __riscv_zmul || XMUL16
 
 __attribute__((naked)) int __mulsi3(int a, int b)
 {
@@ -255,12 +274,19 @@ __attribute__((naked)) int __mulsi3(int a, int b)
         "xor a4, a0, a1\n"
 
         // Absolute values
+#ifdef __riscv_zbb
+        "neg t0, a0\n"
+        "max a0, a0, t0\n"
+        "neg t0, a1\n"
+        "max a1, a1, t0\n"
+#else // __riscv_zbb
         "srai t0, a0, 31\n"
         "xor a0, a0, t0\n"
         "sub a0, a0, t0\n"
         "srai t0, a1, 31\n"
         "xor a1, a1, t0\n"
         "sub a1, a1, t0\n"
+#endif // __riscv_zbb
 
         // Swap for optimization
         "bgeu a0, a1, .Lmulsi3Init\n"
@@ -274,6 +300,18 @@ __attribute__((naked)) int __mulsi3(int a, int b)
         "li a0, 0\n"
 
         // Loop
+
+#ifdef __riscv_zbb
+        "beqz a1, .Lmulsi3FixSign\n"
+        ".Lmulsi3Loop:\n"
+        "ctz a3, a1\n"
+        "srl a1, a1, a3\n"
+        "sll a2, a2, a3\n"
+        "add a0, a0, a2\n"
+        "srli a1, a1, 1\n"
+        "slli a2, a2, 1\n"
+        "bnez a1, .Lmulsi3Loop\n"
+#else // __riscv_zbb
         ".Lmulsi3Loop:\n"
         "andi a3, a1, 1\n"
         "beqz a3, .Lmulsi3Shift\n"
@@ -282,8 +320,10 @@ __attribute__((naked)) int __mulsi3(int a, int b)
         "srli a1, a1, 1\n"
         "slli a2, a2, 1\n"
         "bnez a1, .Lmulsi3Loop\n"
+#endif // __riscv_zbb
 
         // Restore sign
+        ".Lmulsi3FixSign:\n"
         "bgez a4, .Lmulsi3Done\n"
         "not a0, a0\n"
         "addi a0, a0, 1\n"
