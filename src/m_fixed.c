@@ -47,17 +47,17 @@ __attribute__((naked)) fixed_t FixedMul(fixed_t a, fixed_t b)
 __attribute__((naked)) fixed_t FixedMul(fixed_t a, fixed_t b)
 {
     __asm__ volatile (
-        "srli t0, a0, 16\n"
-        "srli t1, a1, 16\n"
-        ".insn r 0x0b, 2, 0, t2, a0, a1\n"  // t2 = al * bl (mul16u)
+        "srli t0, a0, 16\n"                 // t0 = ah
+        "srli t1, a1, 16\n"                 // t1 = bh
+        ".insn r 0x0b, 0, 0, t2, a0, a1\n"  // t2 = al * bl (mul16u)
         ".insn r 0x0b, 1, 0, a2, t0, a1\n"  // a2 = ah * bl (mull6su)
         ".insn r 0x0b, 1, 0, a3, t1, a0\n"  // a3 = al * bh (mul16su)
-        ".insn r 0x0b, 0, 0, t0, t0, t1\n"  // t0 = ah * bh (mul16)
-        "slli t0, t0, 16\n"
+        ".insn r 0x0b, 1, 0, a4, t0, t1\n"  // t0 = ah * bh (mul16su)
         "srli t2, t2, 16\n"
         "add t2, t2, a2\n"
         "add t2, t2, a3\n"
-        "add a0, t2, t0\n"
+        "slli a4, a4, 16\n"
+        "add a0, t2, a4\n"
         "ret\n");
 }
 
